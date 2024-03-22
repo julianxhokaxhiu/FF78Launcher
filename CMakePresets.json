@@ -1,0 +1,88 @@
+﻿{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 25,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "generator": "Visual Studio 17 2022",
+      "architecture": {
+        "value": "win32",
+        "strategy": "set"
+      },
+      "toolset": {
+        "value": "host=x86",
+        "strategy": "set"
+      },
+      "binaryDir": "${sourceDir}/.build",
+      "cacheVariables": {
+        "_EXE_VERSION": "devel",
+        "CMAKE_C_COMPILER": "cl"
+      }
+    },
+    {
+      "name": "Release",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "RelWithDebInfo",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo"
+      }
+    },
+    {
+      "name": "Debug",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "MinSizeRel",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "MinSizeRel"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "Release",
+      "displayName": "Default",
+      "configurePreset": "Release",
+      "configuration": "Release"
+    },
+    {
+      "name": "RelWithDebInfo",
+      "displayName": "Default",
+      "configurePreset": "RelWithDebInfo",
+      "configuration": "RelWithDebInfo"
+    },
+    {
+      "name": "Debug",
+      "displayName": "Default",
+      "configurePreset": "Debug",
+      "configuration": "Debug"
+    },
+    {
+      "name": "MinSizeRel",
+      "displayName": "Default",
+      "configurePreset": "MinSizeRel",
+      "configuration": "MinSizeRel"
+    }
+  ],
+  "vendor": {
+    "microsoft.com/VisualStudioSettings/CMake/1.0": {
+      "hostOS": "Windows",
+      "intelliSenseMode": "windows-msvc-x64"
+    }
+  }
+}
