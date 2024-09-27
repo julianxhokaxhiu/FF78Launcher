@@ -64,6 +64,7 @@ target_include_directories(
 )
 target_link_libraries(
   ${RELEASE_NAME}
+  shlwapi
   ${STACKWALKER_LIBRARIES}
 )
 target_compile_options(
