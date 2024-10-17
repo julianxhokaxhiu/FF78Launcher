@@ -17,6 +17,37 @@
 #include <shlwapi.h>
 #include <shlobj.h>
 #include "globals.h"
+#include "utils.h"
+
+std::wstring getDocumentPath()
+{
+	std::wstring payload;
+
+	if (!ff7_estore_edition && !std::filesystem::exists("data/music_2"))
+	{
+		PWSTR outPath = NULL;
+		HRESULT hr = SHGetKnownFolderPath(FOLDERID_Documents, KF_FLAG_DEFAULT, NULL, &outPath);
+
+		if (SUCCEEDED(hr))
+		{
+			payload.append(outPath);
+			CoTaskMemFree(outPath);
+
+			if (ff8)
+				payload.append(LR"(\Square Enix\FINAL FANTASY VIII Steam)");
+			else
+				payload.append(LR"(\Square Enix\FINAL FANTASY VII Steam)");
+		}
+	}
+	else
+	{
+		WCHAR basedir[512];
+		GetCurrentDirectoryW(512, basedir);
+		payload.append(basedir);
+	}
+
+	return payload;
+}
 
 DWORD WINAPI process_game_messages( LPVOID lpParam )
 {
@@ -54,40 +85,26 @@ void send_user_save_dir()
 {
 	std::wstring payload;
 
+	// Get current document path
+	payload.append(getDocumentPath());
+
 	if (std::filesystem::exists("save"))
 	{
-		WCHAR basedir[512];
-		GetCurrentDirectoryW(512, basedir);
-		payload.append(basedir);
 		payload.append(LR"(\save)");
 	}
 	else
 	{
-		PWSTR outPath = NULL;
-		HRESULT hr = SHGetKnownFolderPath(FOLDERID_Documents, KF_FLAG_DEFAULT, NULL, &outPath);
+		// Search for the first "user_" match in the game path
+		WCHAR searchPath[260];
+		WIN32_FIND_DATAW pathFound;
+		HANDLE hFind;
 
-		if (SUCCEEDED(hr))
+		StrCpyW(searchPath, payload.c_str());
+		StrCatW(searchPath, LR"(\user_*)");
+		if (hFind = FindFirstFileW(searchPath, &pathFound))
 		{
-			payload.append(outPath);
-			CoTaskMemFree(outPath);
-
-			if (ff8)
-				payload.append(LR"(\Square Enix\FINAL FANTASY VIII Steam)");
-			else
-				payload.append(LR"(\Square Enix\FINAL FANTASY VII Steam)");
-
-			// Search for the first "user_" match in the game path
-			WCHAR searchPath[260];
-			WIN32_FIND_DATAW pathFound;
-			HANDLE hFind;
-
-			StrCpyW(searchPath, payload.c_str());
-			StrCatW(searchPath, LR"(\user_*)");
-			if (hFind = FindFirstFileW(searchPath, &pathFound))
-			{
-				payload.append(pathFound.cFileName);
-				FindClose(hFind);
-			}
+			payload.append(pathFound.cFileName);
+			FindClose(hFind);
 		}
 	}
 
@@ -109,29 +126,8 @@ void send_user_doc_dir()
 {
 	std::wstring payload;
 
-	if(std::filesystem::exists("ff7sound.cfg") && std::filesystem::exists("ff7video.cfg"))
-	{
-		WCHAR basedir[512];
-		GetCurrentDirectoryW(512, basedir);
-		payload.append(basedir);
-	}
-	else
-	{
-		PWSTR outPath = NULL;
-		HRESULT hr = SHGetKnownFolderPath(FOLDERID_Documents, KF_FLAG_DEFAULT, NULL, &outPath);
-
-		if (SUCCEEDED(hr))
-		{
-			payload.append(outPath);
-			CoTaskMemFree(outPath);
-
-			if (ff8)
-				payload.append(LR"(\Square Enix\FINAL FANTASY VIII Steam)");
-			else
-				payload.append(LR"(\Square Enix\FINAL FANTASY VII Steam)");
-		}
-	}
-
+	// Get current document path
+	payload.append(getDocumentPath());
 
 	if (ff8)
 		*launcher_memory_part = FF8_DOC_DIR;
@@ -211,4 +207,40 @@ void send_launcher_completed()
 	// Wait for the game
 	ReleaseSemaphore(gameCanReadMsgSem, 1, nullptr);
 	WaitForSingleObject(gameDidReadMsgSem, INFINITE);
+}
+
+void write_ffvideo()
+{
+	std::wstring payload;
+
+	payload.append(getDocumentPath());
+	if (payload.size() > 0) payload.append(LR"(\)");
+	if (ff8) payload.append(L"ff8video.cfg");
+	else payload.append(L"ff7video.cfg");
+
+	FILE* handle = _wfopen(payload.c_str(), L"wb");
+	fwrite_byteswap_ulong(window_width, handle);
+	fwrite_byteswap_ulong(window_height, handle);
+	fwrite_byteswap_ulong(refresh_rate, handle);
+	fwrite_byteswap_ulong(fullscreen, handle);
+	fwrite_byteswap_ulong(enable_linear_filtering, handle);
+	fwrite_byteswap_ulong(keep_aspect_ratio, handle);
+	fwrite_byteswap_ulong(pause_game_on_background, handle);
+	fwrite_byteswap_ulong(original_mode, handle);
+	fclose(handle);
+}
+
+void write_ffsound()
+{
+	std::wstring payload;
+
+	payload.append(getDocumentPath());
+	if (payload.size() > 0) payload.append(LR"(\)");
+	if (ff8) payload.append(L"ff8sound.cfg");
+	else payload.append(L"ff7sound.cfg");
+
+	FILE* handle = _wfopen(payload.c_str(), L"wb");
+	fwrite(&sfx_volume, sizeof(DWORD), 1, handle);
+	fwrite(&music_volume, sizeof(DWORD), 1, handle);
+	fclose(handle);
 }

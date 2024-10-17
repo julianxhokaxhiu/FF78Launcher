@@ -25,3 +25,6 @@ void send_config_keys();
 void send_game_version();
 void send_disable_cloud();
 void send_launcher_completed();
+
+void write_ffvideo();
+void write_ffsound();

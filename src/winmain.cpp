@@ -15,6 +15,9 @@
 
 #include <filesystem>
 #include <windows.h>
+
+#include <StackWalker.h>
+
 #include "resource.h"
 #include "globals.h"
 #include "launcher.h"
@@ -37,11 +40,83 @@ const char processes[][32]{
 };
 const int numProcesses = sizeof(processes)/sizeof(processes[0]);
 
+class FF78StackWalker : public StackWalker
+{
+public:
+    FF78StackWalker(bool muted = false) : StackWalker(), _baseAddress(0), _size(0), _muted(muted) {}
+    DWORD64 getBaseAddress() const {
+        return _baseAddress;
+    }
+    DWORD getSize() const {
+        return _size;
+    }
+protected:
+    virtual void OnLoadModule(LPCSTR img, LPCSTR mod, DWORD64 baseAddr,
+        DWORD size, DWORD result, LPCSTR symType, LPCSTR pdbName,
+        ULONGLONG fileVersion
+    )
+    {
+        if (_baseAddress == 0 && _size == 0)
+        {
+            _baseAddress = baseAddr;
+            _size = size;
+        }
+        StackWalker::OnLoadModule(
+            img, mod, baseAddr, size, result, symType, pdbName, fileVersion
+        );
+    }
+
+    virtual void OnDbgHelpErr(LPCSTR szFuncName, DWORD gle, DWORD64 addr)
+    {
+        // Silence is golden.
+    }
+
+    virtual void OnOutput(LPCSTR szText)
+    {
+        if (!_muted)
+        {
+            std::string tmp(szText);
+            trim(tmp);
+            PLOGV << tmp;
+        }
+    }
+private:
+    DWORD64 _baseAddress;
+    DWORD _size;
+    bool _muted;
+};
+
+LONG WINAPI ExceptionHandler(EXCEPTION_POINTERS* ep)
+{
+	PLOGV << "*** Exception 0x" << std::hex << ep->ExceptionRecord->ExceptionCode << ", address 0x" << std::hex << ep->ExceptionRecord->ExceptionAddress << " ***";
+
+	FF78StackWalker sw;
+	sw.ShowCallstack(
+		GetCurrentThread(),
+		ep->ContextRecord
+	);
+
+	PLOGE << "Unhandled Exception. See dumped information above.";
+
+	MessageBoxA(NULL, "Something went wrong while trying to launch the game. Please look at the logs for more details.", "Error", MB_OK | MB_ICONERROR);
+
+	// let OS handle the crash
+	SetUnhandledExceptionFilter(0);
+	return EXCEPTION_CONTINUE_EXECUTION;
+}
+
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
-	char process_to_start[32]{0};
+	 // Setup logging layer
+	remove(APP_RELEASE_NAME ".log");
+	plog::init<plog::FF78Formatter>(plog::verbose, APP_RELEASE_NAME ".log");
+	PLOGI << APP_RELEASE_NAME << " " << APP_RELEASE_VERSION;
+
+	// Log unhandled exceptions
+	SetUnhandledExceptionFilter(ExceptionHandler);
 
 	// Find which process we need to start
+	char process_to_start[32]{0};
 	for (int i = 0; i < numProcesses; i++)
 	{
 		if (std::filesystem::exists(processes[i]))
@@ -57,6 +132,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	// Get game language
 	strncpy(game_lang, strchr(process_to_start, '_') + 1, 2);
 	game_lang[2] = '\0';
+
+	// Read config
+	read_cfg();
+
+	// Write process required files
+	write_ffvideo();
+	write_ffsound();
 
 	// Initialise the semaphores required to talk with the official driver
 	gameCanReadMsgSem = CreateSemaphoreA(NULL, 0, 1, ff8 ? "ff8_gameCanReadMsgSem" : "ff7_gameCanReadMsgSem");

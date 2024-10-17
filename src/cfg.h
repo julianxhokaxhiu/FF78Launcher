@@ -15,47 +15,15 @@
 
 #pragma once
 
-#include <windows.h>
-#include <stdint.h>
+extern bool fullscreen;
+extern long window_width;
+extern long window_height;
+extern long refresh_rate;
+extern bool enable_linear_filtering;
+extern bool keep_aspect_ratio;
+extern bool original_mode;
+extern bool pause_game_on_background;
+extern long sfx_volume;
+extern long music_volume;
 
-#include <plog/Log.h>
-#include <plog/Initializers/RollingFileInitializer.h>
-#include "plog.formatter.h"
-
-#include "cfg.h"
-
-#define FF7_USER_SAVE_DIR 10
-#define FF7_DOC_DIR 11
-#define FF7_INSTALL_DIR 12
-#define FF7_LOCALE_DATA_DIR 13
-#define FF7_GAME_VERSION 18
-#define FF7_DISABLE_CLOUD 22
-#define FF7_END_USER_INFO 24
-
-#define FF8_USER_SAVE_DIR 9
-#define FF8_DOC_DIR 10
-#define FF8_INSTALL_DIR 11
-#define FF8_LOCALE_DATA_DIR 12
-#define FF8_GAME_VERSION 17
-#define FF8_DISABLE_CLOUD 21
-#define FF8_END_USER_INFO 24
-
-#define ESTORE_USER_SAVE_DIR 9
-#define ESTORE_DOC_DIR 10
-#define ESTORE_INSTALL_DIR 11
-#define ESTORE_LOCALE_DATA_DIR 12
-#define ESTORE_GAME_VERSION 17
-#define ESTORE_END_USER_INFO 20
-
-bool ff8 = false;
-bool ff7_estore_edition = false;
-char game_lang[3]{0};
-
-HANDLE gameCanReadMsgSem;
-HANDLE gameDidReadMsgSem;
-HANDLE launcherCanReadMsgSem;
-HANDLE launcherDidReadMsgSem;
-HANDLE sharedMemoryWithLauncher;
-LPVOID viewOfSharedMemory;
-uint32_t *launcher_memory_part;
-HANDLE processGameMessagesThread;
+void read_cfg();

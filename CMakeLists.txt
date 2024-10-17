@@ -23,6 +23,8 @@ if (NOT DEFINED _EXE_VERSION OR NOT _EXE_VERSION)
   message(FATAL_ERROR "_EXE_VERSION must be set to continue building with cmake. \nExample: Add -D_EXE_VERSION=devel to your cmake command line.")
 endif ()
 
+set(VCPKG_INSTALL_OPTIONS "--clean-after-build" "--x-use-aria2")
+
 set(CMAKE_EXE_LINKER_FLAGS
   "${CMAKE_EXE_LINKER_FLAGS} /NODEFAULTLIB:MSVCRT /NODEFAULTLIB:MSVCRTD /DEBUG:FULL /FORCE:MULTIPLE /IGNORE:4006,4075,4099,4217"
 )
@@ -36,6 +38,10 @@ else()
 endif()
 
 project(FF78Launcher)
+
+find_package(plog CONFIG REQUIRED)
+find_package(STACKWALKER REQUIRED)
+find_package(tomlplusplus CONFIG REQUIRED)
 
 set(RELEASE_NAME "FF78Launcher")
 
@@ -61,10 +67,13 @@ add_executable(
 target_include_directories(
   ${RELEASE_NAME}
   PRIVATE ${CMAKE_SOURCE_DIR}/src
+  PRIVATE ${STACKWALKER_INCLUDE_DIRS}
 )
 target_link_libraries(
   ${RELEASE_NAME}
   shlwapi
+  plog::plog
+  tomlplusplus::tomlplusplus
   ${STACKWALKER_LIBRARIES}
 )
 target_compile_options(
@@ -104,4 +113,8 @@ add_custom_command(
   COMMAND ${CMAKE_COMMAND} -E copy
           ${CMAKE_CURRENT_SOURCE_DIR}/LICENSE
           ${CMAKE_BINARY_DIR}/bin/COPYING.TXT
+  # .toml
+  COMMAND ${CMAKE_COMMAND} -E copy
+          ${CMAKE_CURRENT_SOURCE_DIR}/misc/${RELEASE_NAME}.toml
+          ${CMAKE_BINARY_DIR}/bin
 )

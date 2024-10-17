@@ -23,3 +23,30 @@ inline bool startsWith(const char *pre, const char *str)
 }
 
 auto operator""_MB( unsigned long long const x ) -> long { return 1024L*1024L*x; }
+
+
+// trim from start (in place)
+static inline void ltrim(std::string& s) {
+  s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) {
+    return !std::isspace(ch);
+  }));
+}
+
+// trim from end (in place)
+static inline void rtrim(std::string& s) {
+  s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char ch) {
+    return !std::isspace(ch);
+  }).base(), s.end());
+}
+
+// trim from both ends (in place)
+static inline void trim(std::string& s) {
+  rtrim(s);
+  ltrim(s);
+}
+
+inline size_t fwrite_byteswap_ulong(unsigned long value, FILE* handle)
+{
+  auto swapped = _byteswap_ulong(value);
+  return fwrite(&swapped, sizeof(DWORD), 1, handle);
+}

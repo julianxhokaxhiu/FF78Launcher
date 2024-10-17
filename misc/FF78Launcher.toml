@@ -1,0 +1,67 @@
+# FF78Launcher config file
+
+###############################################################################
+# COMMON OPTIONS FOR BOTH FF7 AND FF8
+###############################################################################
+
+#########################
+## DISPLAY
+#########################
+
+#[FULLSCREEN]
+# If off, it will run in window mode.
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~
+fullscreen = false
+
+#[RESOLUTION]
+# Resolution of the game.
+# Default (value = 0):
+# - Window mode will use 640x480
+# - Fullscreen mode will use your desktop resolution
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~
+window_width = 0
+window_height = 0
+
+#[REFRESH RATE]
+# Screen refresh rate.
+# Default (value = 0):
+# - Window mode will use 60hz
+# - Fullscreen mode will use your desktop refresh rate
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~
+refresh_rate = 0
+
+#[LINEAR FILTERING]
+# Enable linear filtering
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~
+enable_linear_filtering = false
+
+#[ASPECT RATIO]
+# Preserve original game aspect ratio of (4:3) by adding black bars on the left and right side (if needed)
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~
+keep_aspect_ratio = false
+
+#[ORIGINAL MODE]
+# Run the game using the original graphic resolution intended on the initial release of the game
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~
+original_mode = false
+
+#########################
+# AUDIO
+#########################
+
+#[SFX VOLUME]
+# Possible values: 0..100
+sfx_volume = 100
+
+#[MUSIC VOLUME]
+# Possible values: 0..100
+music_volume = 100
+
+###############################################################################
+# OPTIONS ONLY FOR FF8
+###############################################################################
+
+#[PAUSE GAME WHILE ON BACKGROUND]
+# Pauses the game when it doesn't have the focus
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~
+pause_game_on_background = false

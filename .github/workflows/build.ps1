@@ -28,12 +28,19 @@ elseif ($env:_BUILD_BRANCH -like "refs/tags/*")
 }
 $env:_RELEASE_VERSION = "v${env:_BUILD_VERSION}"
 
+$vcpkgRoot = "C:\vcpkg"
+$vcpkgBaseline = [string](jq --arg baseline "builtin-baseline" -r '.[$baseline]' vcpkg.json)
+$vcpkgOriginUrl = &"git" -C $vcpkgRoot remote get-url origin
+$vcpkgBranchName = &"git" -C $vcpkgRoot branch --show-current
 
 $releasePath = [string](jq -r '.configurePresets[0].binaryDir' CMakePresets.json).Replace('${sourceDir}/', '')
 
 Write-Output "--------------------------------------------------"
 Write-Output "BUILD CONFIGURATION: $env:_RELEASE_CONFIGURATION"
 Write-Output "RELEASE VERSION: $env:_RELEASE_VERSION"
+Write-Output "VCPKG ORIGIN: $vcpkgOriginUrl"
+Write-Output "VCPKG BRANCH: $vcpkgBranchName"
+Write-Output "VCPKG BASELINE: $vcpkgBaseline"
 Write-Output "--------------------------------------------------"
 
 Write-Output "_BUILD_VERSION=${env:_BUILD_VERSION}" >> ${env:GITHUB_ENV}
@@ -51,6 +58,23 @@ Get-Content "$env:temp\vcvars.txt" | Foreach-Object {
   }
 }
 
+# Unset VCPKG_ROOT if set
+[Environment]::SetEnvironmentVariable('VCPKG_ROOT','')
+
+# Add Github Packages registry
+nuget sources add -Name github -Source "https://nuget.pkg.github.com/julianxhokaxhiu/index.json" -Username ${env:GITHUB_REPOSITORY_OWNER} -Password ${env:GITHUB_PACKAGES_PAT} -StorePasswordInClearText
+nuget setApiKey ${env:GITHUB_PACKAGES_PAT} -Source "https://nuget.pkg.github.com/julianxhokaxhiu/index.json"
+nuget sources list
+
+# Vcpkg setup
+git -C $vcpkgRoot pull --all
+git -C $vcpkgRoot checkout $vcpkgBaseline
+git -C $vcpkgRoot clean -fxd
+
+cmd.exe /c "call $vcpkgRoot\bootstrap-vcpkg.bat"
+
+vcpkg integrate install
+
 # Start the build
 cmake --preset "${env:_RELEASE_CONFIGURATION}" -D_EXE_VERSION="$env:_BUILD_VERSION"
 cmake --build --preset "${env:_RELEASE_CONFIGURATION}"
@@ -58,6 +82,7 @@ cmake --build --preset "${env:_RELEASE_CONFIGURATION}"
 # Start the packaging
 mkdir .dist\pkg | Out-Null
 Copy-Item -R "$releasePath\bin\COPYING.TXT" ".dist\pkg\"
+Copy-Item -R "$releasePath\bin\FF78Launcher.toml" ".dist\pkg\"
 Copy-Item -R "$releasePath\bin\FF78Launcher.exe" ".dist\pkg\FF7_Launcher.exe"
 Copy-Item -R "$releasePath\bin\FF78Launcher.exe" ".dist\pkg\FF8_Launcher.exe"
 7z a ".\.dist\${env:_RELEASE_NAME}-${env:_RELEASE_VERSION}.zip" ".\.dist\pkg\*"
