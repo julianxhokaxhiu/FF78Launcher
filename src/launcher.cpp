@@ -195,6 +195,18 @@ void send_disable_cloud()
 	WaitForSingleObject(gameDidReadMsgSem, INFINITE);
 }
 
+void send_bg_pause_enabled()
+{
+	if (!ff8) return;
+
+	*launcher_memory_part = FF8_BG_PAUSE_ENABLED;
+	*(launcher_memory_part + 1) = uint32_t(pause_game_on_background);
+
+	// Wait for the game
+	ReleaseSemaphore(gameCanReadMsgSem, 1, nullptr);
+	WaitForSingleObject(gameDidReadMsgSem, INFINITE);
+}
+
 void send_launcher_completed()
 {
 	if (ff8)

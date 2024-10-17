@@ -170,6 +170,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	send_install_dir();
 	send_game_version();
 	send_disable_cloud();
+	send_bg_pause_enabled();
 	send_launcher_completed();
 
 	// Wait for the process to finish
