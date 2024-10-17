@@ -1,0 +1,18 @@
+{
+  "configurations": [
+    {
+      "name": "Run FF7",
+      "type": "cppvsdbg",
+      "request": "launch",
+      "program": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\FINAL FANTASY VII\\ff7_launcher.exe",
+      "cwd": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\FINAL FANTASY VII"
+    },
+    {
+      "name": "Run FF8",
+      "type": "cppvsdbg",
+      "request": "launch",
+      "program": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\FINAL FANTASY VIII\\ff8_launcher.exe",
+      "cwd": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\FINAL FANTASY VIII"
+    }
+  ]
+}
