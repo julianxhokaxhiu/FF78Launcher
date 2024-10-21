@@ -1,6 +1,6 @@
 {
   "name": "ff78launcher",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "builtin-baseline": "a4275b7eee79fb24ec2e135481ef5fce8b41c339",
   "dependencies": [
     "plog",
