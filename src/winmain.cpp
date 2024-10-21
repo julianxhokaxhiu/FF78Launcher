@@ -129,26 +129,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	// Is it eStore?
 	if (startsWith("ff7_ja", process_to_start) && std::filesystem::file_size("AF3DN.P") < 1_MB) ff7_estore_edition = true;
 
-	// Get game language
-	strncpy(game_lang, strchr(process_to_start, '_') + 1, 2);
-	game_lang[2] = '\0';
-
-	// Read config
-	read_cfg();
-
-	// Write process required files
-	write_ffvideo();
-	write_ffsound();
-
-	// Initialise the semaphores required to talk with the official driver
-	gameCanReadMsgSem = CreateSemaphoreA(NULL, 0, 1, ff8 ? "ff8_gameCanReadMsgSem" : "ff7_gameCanReadMsgSem");
-	gameDidReadMsgSem = CreateSemaphoreA(NULL, 0, 1, ff8 ? "ff8_gameDidReadMsgSem" : "ff7_gameDidReadMsgSem");
-	launcherCanReadMsgSem = CreateSemaphoreA(NULL, 0, 1, ff8 ? "ff8_launcherCanReadMsgSem" : "ff7_launcherCanReadMsgSem");
-	launcherDidReadMsgSem = CreateSemaphoreA(NULL, 0, 1, ff8 ? "ff8_launcherDidReadMsgSem" : "ff7_launcherDidReadMsgSem");
-	sharedMemoryWithLauncher = CreateFileMappingA(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, 0x20000, ff8 ? "ff8_sharedMemoryWithLauncher" : "ff7_sharedMemoryWithLauncher");
-	viewOfSharedMemory = MapViewOfFile(sharedMemoryWithLauncher, FILE_MAP_ALL_ACCESS, 0, 0, 0);
-	launcher_memory_part = (uint32_t *)((uint8_t *)viewOfSharedMemory + 0x10000);
-	processGameMessagesThread = CreateThread(NULL, 0, process_game_messages, NULL, NULL, NULL);
+	// Uses FFNx?
+	if (std::filesystem::file_size("AF3DN.P") > 1_MB) uses_ffnx = true;
 
 	// Initialize the process start information
 	STARTUPINFO si;
@@ -157,37 +139,77 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	si.cb = sizeof(si);
 	ZeroMemory(&pi, sizeof(pi));
 
-	// Start the process
-	if (!CreateProcessA(process_to_start, NULL, NULL, NULL, FALSE, NULL, NULL, NULL, &si, &pi))
+	if (!uses_ffnx)
 	{
-		MessageBoxA(NULL, "Something went wrong while launching the game.", "Error", MB_ICONERROR | MB_OK);
-		return 1;
+		// Get game language
+		strncpy(game_lang, strchr(process_to_start, '_') + 1, 2);
+		game_lang[2] = '\0';
+
+		// Read config
+		read_cfg();
+
+		// Write process required files
+		write_ffvideo();
+		write_ffsound();
+
+		// Initialise the semaphores required to talk with the official driver
+		gameCanReadMsgSem = CreateSemaphoreA(NULL, 0, 1, ff8 ? "ff8_gameCanReadMsgSem" : "ff7_gameCanReadMsgSem");
+		gameDidReadMsgSem = CreateSemaphoreA(NULL, 0, 1, ff8 ? "ff8_gameDidReadMsgSem" : "ff7_gameDidReadMsgSem");
+		launcherCanReadMsgSem = CreateSemaphoreA(NULL, 0, 1, ff8 ? "ff8_launcherCanReadMsgSem" : "ff7_launcherCanReadMsgSem");
+		launcherDidReadMsgSem = CreateSemaphoreA(NULL, 0, 1, ff8 ? "ff8_launcherDidReadMsgSem" : "ff7_launcherDidReadMsgSem");
+		sharedMemoryWithLauncher = CreateFileMappingA(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, 0x20000, ff8 ? "ff8_sharedMemoryWithLauncher" : "ff7_sharedMemoryWithLauncher");
+		viewOfSharedMemory = MapViewOfFile(sharedMemoryWithLauncher, FILE_MAP_ALL_ACCESS, 0, 0, 0);
+		launcher_memory_part = (uint32_t *)((uint8_t *)viewOfSharedMemory + 0x10000);
+		processGameMessagesThread = CreateThread(NULL, 0, process_game_messages, NULL, NULL, NULL);
+
+		// Start the process
+		if (!CreateProcessA(process_to_start, NULL, NULL, NULL, FALSE, NULL, NULL, NULL, &si, &pi))
+		{
+			MessageBoxA(NULL, "Something went wrong while launching the game.", "Error", MB_ICONERROR | MB_OK);
+			return 1;
+		}
+
+		send_locale_data_dir();
+		send_user_save_dir();
+		send_user_doc_dir();
+		send_install_dir();
+		send_game_version();
+		send_disable_cloud();
+		send_bg_pause_enabled();
+		send_launcher_completed();
+
+		// Wait for the process to finish
+		WaitForSingleObject(pi.hProcess, INFINITE);
+
+		// Close process and thread handles
+		CloseHandle(pi.hProcess);
+		CloseHandle(pi.hThread);
+		CloseHandle(processGameMessagesThread);
+
+		// Close Semaphores and file mappings
+		UnmapViewOfFile(viewOfSharedMemory);
+		CloseHandle(sharedMemoryWithLauncher);
+		CloseHandle(gameDidReadMsgSem);
+		CloseHandle(gameCanReadMsgSem);
+		CloseHandle(launcherDidReadMsgSem);
+		CloseHandle(launcherCanReadMsgSem);
 	}
+	else
+	{
+		// Start the process
+		if (!CreateProcessA(process_to_start, NULL, NULL, NULL, FALSE, NULL, NULL, NULL, &si, &pi))
+		{
+			MessageBoxA(NULL, "Something went wrong while launching the game.", "Error", MB_ICONERROR | MB_OK);
+			return 1;
+		}
 
-	send_locale_data_dir();
-	send_user_save_dir();
-	send_user_doc_dir();
-	send_install_dir();
-	send_game_version();
-	send_disable_cloud();
-	send_bg_pause_enabled();
-	send_launcher_completed();
+		// Wait for the process to finish
+		WaitForSingleObject(pi.hProcess, INFINITE);
 
-	// Wait for the process to finish
-	WaitForSingleObject(pi.hProcess, INFINITE);
-
-	// Close process and thread handles
-	CloseHandle(pi.hProcess);
-	CloseHandle(pi.hThread);
-	CloseHandle(processGameMessagesThread);
-
-	// Close Semaphores and file mappings
-	UnmapViewOfFile(viewOfSharedMemory);
-	CloseHandle(sharedMemoryWithLauncher);
-	CloseHandle(gameDidReadMsgSem);
-	CloseHandle(gameCanReadMsgSem);
-	CloseHandle(launcherDidReadMsgSem);
-	CloseHandle(launcherCanReadMsgSem);
+		// Close process and thread handles
+		CloseHandle(pi.hProcess);
+		CloseHandle(pi.hThread);
+	}
 
 	return 0;
 }

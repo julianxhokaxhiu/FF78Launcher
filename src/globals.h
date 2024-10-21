@@ -50,6 +50,7 @@
 
 bool ff8 = false;
 bool ff7_estore_edition = false;
+bool uses_ffnx = false;
 char game_lang[3]{0};
 
 HANDLE gameCanReadMsgSem;
