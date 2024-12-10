@@ -107,7 +107,7 @@ LONG WINAPI ExceptionHandler(EXCEPTION_POINTERS* ep)
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
-	 // Setup logging layer
+	// Setup logging layer
 	remove(APP_RELEASE_NAME ".log");
 	plog::init<plog::FF78Formatter>(plog::verbose, APP_RELEASE_NAME ".log");
 	PLOGI << APP_RELEASE_NAME << " " << APP_RELEASE_VERSION;
@@ -132,6 +132,16 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	// Uses FFNx?
 	if (std::filesystem::file_size("AF3DN.P") > 1_MB) uses_ffnx = true;
 
+	// Get game language
+	strncpy(game_lang, strchr(process_to_start, '_') + 1, 2);
+	game_lang[2] = '\0';
+
+	// Read config
+	read_cfg();
+
+	// Is it FF8 Chocobo?
+	if (launch_chocobo) sprintf_s(process_to_start, 32, "chocobo_%s.exe", game_lang);
+
 	// Initialize the process start information
 	STARTUPINFO si;
 	PROCESS_INFORMATION pi;
@@ -139,25 +149,21 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	si.cb = sizeof(si);
 	ZeroMemory(&pi, sizeof(pi));
 
-	if (!uses_ffnx)
+	if (!uses_ffnx || launch_chocobo)
 	{
-		// Get game language
-		strncpy(game_lang, strchr(process_to_start, '_') + 1, 2);
-		game_lang[2] = '\0';
-
-		// Read config
-		read_cfg();
-
 		// Write process required files
-		write_ffvideo();
-		write_ffsound();
+		if (!uses_ffnx)
+		{
+			write_ffvideo();
+			write_ffsound();
+		}
 
 		// Initialise the semaphores required to talk with the official driver
-		gameCanReadMsgSem = CreateSemaphoreA(NULL, 0, 1, ff8 ? "ff8_gameCanReadMsgSem" : "ff7_gameCanReadMsgSem");
-		gameDidReadMsgSem = CreateSemaphoreA(NULL, 0, 1, ff8 ? "ff8_gameDidReadMsgSem" : "ff7_gameDidReadMsgSem");
-		launcherCanReadMsgSem = CreateSemaphoreA(NULL, 0, 1, ff8 ? "ff8_launcherCanReadMsgSem" : "ff7_launcherCanReadMsgSem");
-		launcherDidReadMsgSem = CreateSemaphoreA(NULL, 0, 1, ff8 ? "ff8_launcherDidReadMsgSem" : "ff7_launcherDidReadMsgSem");
-		sharedMemoryWithLauncher = CreateFileMappingA(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, 0x20000, ff8 ? "ff8_sharedMemoryWithLauncher" : "ff7_sharedMemoryWithLauncher");
+		gameCanReadMsgSem = CreateSemaphoreA(NULL, 0, 1, launch_chocobo ? "choco_gameCanReadMsgSem" : (ff8 ? "ff8_gameCanReadMsgSem" : "ff7_gameCanReadMsgSem"));
+		gameDidReadMsgSem = CreateSemaphoreA(NULL, 0, 1, launch_chocobo ? "choco_gameDidReadMsgSem" : (ff8 ? "ff8_gameDidReadMsgSem" : "ff7_gameDidReadMsgSem"));
+		launcherCanReadMsgSem = CreateSemaphoreA(NULL, 0, 1, launch_chocobo ? "choco_launcherCanReadMsgSem" : (ff8 ? "ff8_launcherCanReadMsgSem" : "ff7_launcherCanReadMsgSem"));
+		launcherDidReadMsgSem = CreateSemaphoreA(NULL, 0, 1, launch_chocobo ? "choco_launcherDidReadMsgSem" : (ff8 ? "ff8_launcherDidReadMsgSem" : "ff7_launcherDidReadMsgSem"));
+		sharedMemoryWithLauncher = CreateFileMappingA(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, 0x20000, launch_chocobo ? "choco_sharedMemoryWithLauncher" : (ff8 ? "ff8_sharedMemoryWithLauncher" : "ff7_sharedMemoryWithLauncher"));
 		viewOfSharedMemory = MapViewOfFile(sharedMemoryWithLauncher, FILE_MAP_ALL_ACCESS, 0, 0, 0);
 		launcher_memory_part = (uint32_t *)((uint8_t *)viewOfSharedMemory + 0x10000);
 		processGameMessagesThread = CreateThread(NULL, 0, process_game_messages, NULL, NULL, NULL);

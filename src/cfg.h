@@ -25,5 +25,6 @@ extern bool original_mode;
 extern bool pause_game_on_background;
 extern long sfx_volume;
 extern long music_volume;
+extern bool launch_chocobo;
 
 void read_cfg();

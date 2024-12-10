@@ -31,13 +31,14 @@ std::wstring getDocumentPath()
 		if (SUCCEEDED(hr))
 		{
 			payload.append(outPath);
-			CoTaskMemFree(outPath);
 
 			if (ff8)
 				payload.append(LR"(\Square Enix\FINAL FANTASY VIII Steam)");
 			else
 				payload.append(LR"(\Square Enix\FINAL FANTASY VII Steam)");
 		}
+
+		CoTaskMemFree(outPath);
 	}
 	else
 	{

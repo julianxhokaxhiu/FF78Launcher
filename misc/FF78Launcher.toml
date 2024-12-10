@@ -65,3 +65,7 @@ music_volume = 100
 # Pauses the game when it doesn't have the focus
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~
 pause_game_on_background = false
+
+#[LAUNCH CHOCOBO]
+# Launch the Chocobo_*.exe instead of the game
+launch_chocobo = false

@@ -30,6 +30,7 @@ bool original_mode;
 bool pause_game_on_background;
 long sfx_volume;
 long music_volume;
+bool launch_chocobo;
 
 void read_cfg()
 {
@@ -62,6 +63,7 @@ void read_cfg()
 	pause_game_on_background = config["pause_game_on_background"].value_or(false);
   sfx_volume = config["sfx_volume"].value_or(100);
   music_volume = config["music_volume"].value_or(100);
+	launch_chocobo = config["launch_chocobo"].value_or(false);
 
   // Window width or height size can't be less then 0
 	if (window_width < 0) window_width = 0;
@@ -97,5 +99,9 @@ void read_cfg()
 	}
 
 	// FF7 does not support this flag
-	if (!ff8) pause_game_on_background = false;
+	if (!ff8)
+	{
+		pause_game_on_background = false;
+		launch_chocobo = false;
+	}
 }
