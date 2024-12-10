@@ -50,3 +50,8 @@ inline size_t fwrite_byteswap_ulong(unsigned long value, FILE* handle)
   auto swapped = _byteswap_ulong(value);
   return fwrite(&swapped, sizeof(DWORD), 1, handle);
 }
+
+inline size_t fwrite_ulong(unsigned long value, FILE* handle)
+{
+  return fwrite(&value, sizeof(DWORD), 1, handle);
+}

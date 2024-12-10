@@ -52,6 +52,8 @@ std::wstring getDocumentPath()
 
 DWORD WINAPI process_game_messages( LPVOID lpParam )
 {
+	PLOGI.printf("Starting game message queue thread...");
+
 	// Release semaphores when raised
 	while(true)
 	{
@@ -76,6 +78,8 @@ void send_locale_data_dir()
 
 	*(launcher_memory_part + 1) = uint32_t(payload.size());
 	memcpy((void *)(launcher_memory_part + 2), payload.data(), payload.size() * sizeof(wchar_t));
+
+	PLOGI.printf("%s -> %ls", __func__, payload.c_str());
 
 	// Wait for the game
 	ReleaseSemaphore(gameCanReadMsgSem, 1, nullptr);
@@ -104,6 +108,7 @@ void send_user_save_dir()
 		StrCatW(searchPath, LR"(\user_*)");
 		if (hFind = FindFirstFileW(searchPath, &pathFound))
 		{
+			payload.append(LR"(\)");
 			payload.append(pathFound.cFileName);
 			FindClose(hFind);
 		}
@@ -117,6 +122,8 @@ void send_user_save_dir()
 		*launcher_memory_part = FF7_USER_SAVE_DIR;
 	*(launcher_memory_part + 1) = uint32_t(payload.size());
 	memcpy((void *)(launcher_memory_part + 2), payload.data(), payload.size() * sizeof(wchar_t));
+
+	PLOGI.printf("%s -> %ls", __func__, payload.c_str());
 
 	// Wait for the game
 	ReleaseSemaphore(gameCanReadMsgSem, 1, nullptr);
@@ -139,6 +146,8 @@ void send_user_doc_dir()
 	*(launcher_memory_part + 1) = uint32_t(payload.size());
 	memcpy((void *)(launcher_memory_part + 2), payload.data(), payload.size() * sizeof(wchar_t));
 
+	PLOGI.printf("%s -> %ls", __func__, payload.c_str());
+
 	// Wait for the game
 	ReleaseSemaphore(gameCanReadMsgSem, 1, nullptr);
 	WaitForSingleObject(gameDidReadMsgSem, INFINITE);
@@ -159,6 +168,8 @@ void send_install_dir()
 	*(launcher_memory_part + 1) = uint32_t(payload.size());
 	memcpy((void *)(launcher_memory_part + 2), payload.data(), payload.size() * sizeof(wchar_t));
 
+	PLOGI.printf("%s -> %ls", __func__, payload.c_str());
+
 	// Wait for the game
 	ReleaseSemaphore(gameCanReadMsgSem, 1, nullptr);
 	WaitForSingleObject(gameDidReadMsgSem, INFINITE);
@@ -177,6 +188,8 @@ void send_game_version()
 	*(launcher_memory_part + 1) = uint32_t(payload.size());
 	memcpy((void *)(launcher_memory_part + 2), payload.data(), payload.size() * sizeof(wchar_t));
 
+	PLOGI.printf("%s -> %ls", __func__, payload.c_str());
+
 	// Wait for the game
 	ReleaseSemaphore(gameCanReadMsgSem, 1, nullptr);
 	WaitForSingleObject(gameDidReadMsgSem, INFINITE);
@@ -191,6 +204,8 @@ void send_disable_cloud()
 	else
 		*launcher_memory_part = FF7_DISABLE_CLOUD;
 
+	PLOGI.printf("%s", __func__);
+
 	// Wait for the game
 	ReleaseSemaphore(gameCanReadMsgSem, 1, nullptr);
 	WaitForSingleObject(gameDidReadMsgSem, INFINITE);
@@ -202,6 +217,8 @@ void send_bg_pause_enabled()
 
 	*launcher_memory_part = FF8_BG_PAUSE_ENABLED;
 	*(launcher_memory_part + 1) = uint32_t(pause_game_on_background);
+
+	PLOGI.printf("%s -> %d", __func__, pause_game_on_background);
 
 	// Wait for the game
 	ReleaseSemaphore(gameCanReadMsgSem, 1, nullptr);
@@ -217,6 +234,8 @@ void send_launcher_completed()
 	else
 		*launcher_memory_part = FF7_END_USER_INFO;
 
+	PLOGI.printf("%s", __func__);
+
 	// Wait for the game
 	ReleaseSemaphore(gameCanReadMsgSem, 1, nullptr);
 	WaitForSingleObject(gameDidReadMsgSem, INFINITE);
@@ -228,19 +247,38 @@ void write_ffvideo()
 
 	payload.append(getDocumentPath());
 	if (payload.size() > 0) payload.append(LR"(\)");
-	if (ff8) payload.append(L"ff8video.cfg");
-	else payload.append(L"ff7video.cfg");
 
-	FILE* handle = _wfopen(payload.c_str(), L"wb");
-	fwrite_byteswap_ulong(window_width, handle);
-	fwrite_byteswap_ulong(window_height, handle);
-	fwrite_byteswap_ulong(refresh_rate, handle);
-	fwrite_byteswap_ulong(fullscreen, handle);
-	fwrite_byteswap_ulong(enable_linear_filtering, handle);
-	fwrite_byteswap_ulong(keep_aspect_ratio, handle);
-	fwrite_byteswap_ulong(pause_game_on_background, handle);
-	fwrite_byteswap_ulong(original_mode, handle);
-	fclose(handle);
+	if (ff8)
+	{
+		payload.append(L"ff8video.cfg");
+
+		FILE* handle = _wfopen(payload.c_str(), L"wb");
+		fwrite_ulong(window_width, handle);
+		fwrite_ulong(window_height, handle);
+		fwrite_ulong(refresh_rate, handle);
+		fwrite_ulong(fullscreen, handle);
+		fwrite_ulong(0, handle);
+		fwrite_ulong(keep_aspect_ratio, handle);
+		fwrite_ulong(enable_linear_filtering, handle);
+		fwrite_ulong(original_mode, handle);
+		fwrite_ulong(pause_game_on_background, handle);
+		fclose(handle);
+	}
+	else
+	{
+		payload.append(L"ff7video.cfg");
+
+		FILE* handle = _wfopen(payload.c_str(), L"wb");
+		fwrite_byteswap_ulong(window_width, handle);
+		fwrite_byteswap_ulong(window_height, handle);
+		fwrite_byteswap_ulong(refresh_rate, handle);
+		fwrite_byteswap_ulong(fullscreen, handle);
+		fwrite_byteswap_ulong(0, handle);
+		fwrite_byteswap_ulong(keep_aspect_ratio, handle);
+		fwrite_byteswap_ulong(enable_linear_filtering, handle);
+		fwrite_byteswap_ulong(original_mode, handle);
+		fclose(handle);
+	}
 }
 
 void write_ffsound()
