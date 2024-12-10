@@ -23,6 +23,10 @@ After you install the launcher, you will find a file named [`FF78Launcher.toml`]
 
 For a full list of supported game launchers, see [this list](https://github.com/julianxhokaxhiu/FF78Launcher/blob/master/src/winmain.cpp#L23-L37)
 
+## How to launch the Chocobo exe
+
+If you want to launch the chocobo exe while using this custom launcher, please set the `launch_chocobo` flag to `true` in the [`FF78Launcher.toml`](misc/FF78Launcher.toml) config file. When you want to launch back the game, set back the `launch_chocobo` flag to `false`.
+
 ## Known issues
 
 - Controller settings are not inherited from the official launcher
