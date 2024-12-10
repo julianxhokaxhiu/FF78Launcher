@@ -216,9 +216,9 @@ void send_bg_pause_enabled()
 	if (!ff8) return;
 
 	*launcher_memory_part = FF8_BG_PAUSE_ENABLED;
-	*(launcher_memory_part + 1) = uint32_t(pause_game_on_background);
+	*(launcher_memory_part + 1) = uint32_t(1);
 
-	PLOGI.printf("%s -> %d", __func__, pause_game_on_background);
+	PLOGI.printf("%s", __func__);
 
 	// Wait for the game
 	ReleaseSemaphore(gameCanReadMsgSem, 1, nullptr);
