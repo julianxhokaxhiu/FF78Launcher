@@ -2,15 +2,15 @@
 
 # FF78Launcher
 
-An alternative launcher for FF7/FF8 Steam and eStore editions
+An alternative launcher for FF7/FF8 Steam and eStore editions.
 
 ## How to build
 
 ### Requirements (Windows only):
 
-- Visual Studio 2022 (minimum) with the “Desktop development with C++” workload
-- CMake 3.25 or newer
-- Git
+- [Visual Studio 2022](https://visualstudio.microsoft.com) (minimum) with the “Desktop development with C++” workload
+- [CMake 3.25](https://cmake.org) or newer
+- [Git](https://git-scm.com/install/windows)
 
 ### Steps (PowerShell or a Developer Command Prompt):
 
@@ -50,4 +50,4 @@ If you want to launch the chocobo exe while using this custom launcher, please s
 
 ## Known issues
 
-- Controller settings are not inherited from the official launcher
+- ~Controller settings are not inherited from the official launcher~
