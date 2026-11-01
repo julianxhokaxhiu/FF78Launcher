@@ -4,6 +4,27 @@
 
 An alternative launcher for FF7/FF8 Steam and eStore editions
 
+## How to build
+
+### Requirements (Windows only):
+
+- Visual Studio 2022 with the “Desktop development with C++” workload
+- CMake 3.25 or newer
+- Git
+
+### Steps (PowerShell or a Developer Command Prompt):
+
+```
+git clone --recurse-submodules https://github.com/julianxhokaxhiu/FF78Launcher.git
+cd FF78Launcher
+
+# vcpkg is a git submodule, so bootstrap it once
+.\vcpkg\bootstrap-vcpkg.bat
+
+cmake --preset Release
+cmake --build --preset Release
+```
+
 ## How to install
 
 > **Please note:** Make a backup of your launcher or use the Steam Game files integrity check if something goes wrong and you're not able to launch the game.
