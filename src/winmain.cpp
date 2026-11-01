@@ -38,52 +38,52 @@ const char processes[][32]{
 	"ff8_it.exe",
 	"ff8_ja.exe",
 };
-const int numProcesses = sizeof(processes) / sizeof(processes[0]);
+const int numProcesses = sizeof(processes)/sizeof(processes[0]);
 
 class FF78StackWalker : public StackWalker
 {
 public:
-	FF78StackWalker(bool muted = false) : StackWalker(), _baseAddress(0), _size(0), _muted(muted) {}
-	DWORD64 getBaseAddress() const {
-		return _baseAddress;
-	}
-	DWORD getSize() const {
-		return _size;
-	}
+    FF78StackWalker(bool muted = false) : StackWalker(), _baseAddress(0), _size(0), _muted(muted) {}
+    DWORD64 getBaseAddress() const {
+        return _baseAddress;
+    }
+    DWORD getSize() const {
+        return _size;
+    }
 protected:
-	virtual void OnLoadModule(LPCSTR img, LPCSTR mod, DWORD64 baseAddr,
-		DWORD size, DWORD result, LPCSTR symType, LPCSTR pdbName,
-		ULONGLONG fileVersion
-	)
-	{
-		if (_baseAddress == 0 && _size == 0)
-		{
-			_baseAddress = baseAddr;
-			_size = size;
-		}
-		StackWalker::OnLoadModule(
-			img, mod, baseAddr, size, result, symType, pdbName, fileVersion
-		);
-	}
+    virtual void OnLoadModule(LPCSTR img, LPCSTR mod, DWORD64 baseAddr,
+        DWORD size, DWORD result, LPCSTR symType, LPCSTR pdbName,
+        ULONGLONG fileVersion
+    )
+    {
+        if (_baseAddress == 0 && _size == 0)
+        {
+            _baseAddress = baseAddr;
+            _size = size;
+        }
+        StackWalker::OnLoadModule(
+            img, mod, baseAddr, size, result, symType, pdbName, fileVersion
+        );
+    }
 
-	virtual void OnDbgHelpErr(LPCSTR szFuncName, DWORD gle, DWORD64 addr)
-	{
-		// Silence is golden.
-	}
+    virtual void OnDbgHelpErr(LPCSTR szFuncName, DWORD gle, DWORD64 addr)
+    {
+        // Silence is golden.
+    }
 
-	virtual void OnOutput(LPCSTR szText)
-	{
-		if (!_muted)
-		{
-			std::string tmp(szText);
-			trim(tmp);
-			PLOGV << tmp;
-		}
-	}
+    virtual void OnOutput(LPCSTR szText)
+    {
+        if (!_muted)
+        {
+            std::string tmp(szText);
+            trim(tmp);
+            PLOGV << tmp;
+        }
+    }
 private:
-	DWORD64 _baseAddress;
-	DWORD _size;
-	bool _muted;
+    DWORD64 _baseAddress;
+    DWORD _size;
+    bool _muted;
 };
 
 LONG WINAPI ExceptionHandler(EXCEPTION_POINTERS* ep)
@@ -116,7 +116,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	SetUnhandledExceptionFilter(ExceptionHandler);
 
 	// Find which process we need to start
-	char process_to_start[32]{ 0 };
+	char process_to_start[32]{0};
 	for (int i = 0; i < numProcesses; i++)
 	{
 		if (std::filesystem::exists(processes[i]))
@@ -142,7 +142,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	// Optional language override from the config ("auto" keeps the detected exe)
 	if (language != "auto")
 	{
-		char candidate[32]{ 0 };
+		char candidate[32]{0};
 		sprintf_s(candidate, 32, "%.3s_%s.exe", process_to_start, language.c_str());
 
 		bool known = false;
@@ -181,6 +181,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		{
 			write_ffvideo();
 			write_ffsound();
+			write_ffinput();
 		}
 
 		if (uses_ffnx)
@@ -195,7 +196,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		launcherDidReadMsgSem = CreateSemaphoreA(NULL, 0, 1, launch_chocobo ? "choco_launcherDidReadMsgSem" : (ff8 ? "ff8_launcherDidReadMsgSem" : "ff7_launcherDidReadMsgSem"));
 		sharedMemoryWithLauncher = CreateFileMappingA(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, 0x20000, launch_chocobo ? "choco_sharedMemoryWithLauncher" : (ff8 ? "ff8_sharedMemoryWithLauncher" : "ff7_sharedMemoryWithLauncher"));
 		viewOfSharedMemory = MapViewOfFile(sharedMemoryWithLauncher, FILE_MAP_ALL_ACCESS, 0, 0, 0);
-		launcher_memory_part = (uint32_t*)((uint8_t*)viewOfSharedMemory + 0x10000);
+		launcher_memory_part = (uint32_t *)((uint8_t *)viewOfSharedMemory + 0x10000);
 		processGameMessagesThread = CreateThread(NULL, 0, process_game_messages, NULL, NULL, NULL);
 
 		// Start the process

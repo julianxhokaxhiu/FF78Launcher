@@ -33,3 +33,4 @@ void send_launcher_completed();
 
 void write_ffvideo();
 void write_ffsound();
+void write_ffinput();

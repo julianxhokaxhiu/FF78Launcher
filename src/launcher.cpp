@@ -51,7 +51,7 @@ static bool patch_prompt_flag(HANDLE hProcess, DWORD pid)
 	ZeroMemory(&me, sizeof(me));
 	me.dwSize = sizeof(me);
 
-	BYTE* base = nullptr;
+	BYTE *base = nullptr;
 	DWORD size = 0;
 	if (Module32First(snap, &me))
 	{
@@ -78,7 +78,7 @@ static bool patch_prompt_flag(HANDLE hProcess, DWORD pid)
 	// reference to the flag, which must equal the one at offset 2.
 	struct Signature
 	{
-		const char* name;
+		const char *name;
 		size_t len;
 		size_t ref2;
 		BYTE pat[32];
@@ -90,47 +90,47 @@ static bool patch_prompt_flag(HANDLE hProcess, DWORD pid)
 		{ "FF7", 24, 20,
 			{ 0x38,0x1D,0,0,0,0, 0x74,0x48, 0x39,0x3D,0,0,0,0, 0x75,0x40, 0x6A,0x48, 0x88,0x1D,0,0,0,0 },
 			{ 1,1,0,0,0,0, 1,1, 1,1,0,0,0,0, 1,1, 1,1, 1,1,0,0,0,0 } },
-			// FF8: cmp [flag],bl / jz / cmp [other],bl / jz / mov [flag],bl
-			{ "FF8", 30, 26,
-				{ 0x38,0x1D,0,0,0,0, 0x0F,0x84,0,0,0,0, 0x38,0x1D,0,0,0,0, 0x0F,0x84,0,0,0,0, 0x88,0x1D,0,0,0,0 },
-				{ 1,1,0,0,0,0, 1,1,0,0,0,0, 1,1,0,0,0,0, 1,1,0,0,0,0, 1,1,0,0,0,0 } },
+		// FF8: cmp [flag],bl / jz / cmp [other],bl / jz / mov [flag],bl
+		{ "FF8", 30, 26,
+			{ 0x38,0x1D,0,0,0,0, 0x0F,0x84,0,0,0,0, 0x38,0x1D,0,0,0,0, 0x0F,0x84,0,0,0,0, 0x88,0x1D,0,0,0,0 },
+			{ 1,1,0,0,0,0, 1,1,0,0,0,0, 1,1,0,0,0,0, 1,1,0,0,0,0, 1,1,0,0,0,0 } },
 	};
 
-	for (const Signature& sig : signatures)
-		for (size_t i = 0; i + sig.len <= img.size(); i++)
+	for (const Signature &sig : signatures)
+	for (size_t i = 0; i + sig.len <= img.size(); i++)
+	{
+		bool ok = true;
+		for (size_t j = 0; j < sig.len; j++)
 		{
-			bool ok = true;
-			for (size_t j = 0; j < sig.len; j++)
-			{
-				if (sig.mask[j] && img[i + j] != sig.pat[j]) { ok = false; break; }
-			}
-			if (!ok) continue;
+			if (sig.mask[j] && img[i + j] != sig.pat[j]) { ok = false; break; }
+		}
+		if (!ok) continue;
 
-			// Both references must point to the same flag
-			if (memcmp(&img[i + 2], &img[i + sig.ref2], 4) != 0) continue;
+		// Both references must point to the same flag
+		if (memcmp(&img[i + 2], &img[i + sig.ref2], 4) != 0) continue;
 
-			uint32_t flagAddr;
-			memcpy(&flagAddr, &img[i + 2], 4);
+		uint32_t flagAddr;
+		memcpy(&flagAddr, &img[i + 2], 4);
 
-			// Not (yet) relocated, or not what we expect: try again later
-			if (flagAddr < (uint32_t)(uintptr_t)base || flagAddr >= (uint32_t)(uintptr_t)base + size) return false;
+		// Not (yet) relocated, or not what we expect: try again later
+		if (flagAddr < (uint32_t)(uintptr_t)base || flagAddr >= (uint32_t)(uintptr_t)base + size) return false;
 
-			BYTE value = 0xFF;
-			if (!ReadProcessMemory(hProcess, (LPCVOID)(uintptr_t)flagAddr, &value, 1, &got) || got != 1) return false;
+		BYTE value = 0xFF;
+		if (!ReadProcessMemory(hProcess, (LPCVOID)(uintptr_t)flagAddr, &value, 1, &got) || got != 1) return false;
 
-			if (value == 0)
-			{
-				PLOGI.printf("Keyboard prompt flag already cleared");
-				return true;
-			}
-			if (value != 1) return false;
-
-			BYTE zero = 0;
-			if (!WriteProcessMemory(hProcess, (LPVOID)(uintptr_t)flagAddr, &zero, 1, &got) || got != 1) return false;
-
-			PLOGI.printf("Keyboard prompt bypassed (%s driver, flag at 0x%08X)", sig.name, flagAddr);
+		if (value == 0)
+		{
+			PLOGI.printf("Keyboard prompt flag already cleared");
 			return true;
 		}
+		if (value != 1) return false;
+
+		BYTE zero = 0;
+		if (!WriteProcessMemory(hProcess, (LPVOID)(uintptr_t)flagAddr, &zero, 1, &got) || got != 1) return false;
+
+		PLOGI.printf("Keyboard prompt bypassed (%s driver, flag at 0x%08X)", sig.name, flagAddr);
+		return true;
+	}
 
 	return false;
 }
@@ -190,12 +190,12 @@ std::wstring getDocumentPath()
 	return payload;
 }
 
-DWORD WINAPI process_game_messages(LPVOID lpParam)
+DWORD WINAPI process_game_messages( LPVOID lpParam )
 {
 	PLOGI.printf("Starting game message queue thread...");
 
 	// Release semaphores when raised
-	while (true)
+	while(true)
 	{
 		WaitForSingleObject(launcherCanReadMsgSem, INFINITE);
 		ReleaseSemaphore(launcherDidReadMsgSem, 1, nullptr);
@@ -211,13 +211,13 @@ void send_locale_data_dir()
 
 	if (ff8)
 		*launcher_memory_part = FF8_LOCALE_DATA_DIR;
-	else if (ff7_estore_edition)
+	else if(ff7_estore_edition)
 		*launcher_memory_part = ESTORE_LOCALE_DATA_DIR;
 	else
 		*launcher_memory_part = FF7_LOCALE_DATA_DIR;
 
 	*(launcher_memory_part + 1) = uint32_t(payload.size());
-	memcpy((void*)(launcher_memory_part + 2), payload.data(), payload.size() * sizeof(wchar_t));
+	memcpy((void *)(launcher_memory_part + 2), payload.data(), payload.size() * sizeof(wchar_t));
 
 	PLOGI.printf("%s -> %ls", __func__, payload.c_str());
 
@@ -256,12 +256,12 @@ void send_user_save_dir()
 
 	if (ff8)
 		*launcher_memory_part = FF8_USER_SAVE_DIR;
-	else if (ff7_estore_edition)
+	else if(ff7_estore_edition)
 		*launcher_memory_part = ESTORE_USER_SAVE_DIR;
 	else
 		*launcher_memory_part = FF7_USER_SAVE_DIR;
 	*(launcher_memory_part + 1) = uint32_t(payload.size());
-	memcpy((void*)(launcher_memory_part + 2), payload.data(), payload.size() * sizeof(wchar_t));
+	memcpy((void *)(launcher_memory_part + 2), payload.data(), payload.size() * sizeof(wchar_t));
 
 	PLOGI.printf("%s -> %ls", __func__, payload.c_str());
 
@@ -279,12 +279,12 @@ void send_user_doc_dir()
 
 	if (ff8)
 		*launcher_memory_part = FF8_DOC_DIR;
-	else if (ff7_estore_edition)
+	else if(ff7_estore_edition)
 		*launcher_memory_part = ESTORE_DOC_DIR;
 	else
 		*launcher_memory_part = FF7_DOC_DIR;
 	*(launcher_memory_part + 1) = uint32_t(payload.size());
-	memcpy((void*)(launcher_memory_part + 2), payload.data(), payload.size() * sizeof(wchar_t));
+	memcpy((void *)(launcher_memory_part + 2), payload.data(), payload.size() * sizeof(wchar_t));
 
 	PLOGI.printf("%s -> %ls", __func__, payload.c_str());
 
@@ -301,12 +301,12 @@ void send_install_dir()
 
 	if (ff8)
 		*launcher_memory_part = FF8_INSTALL_DIR;
-	else if (ff7_estore_edition)
+	else if(ff7_estore_edition)
 		*launcher_memory_part = ESTORE_INSTALL_DIR;
 	else
 		*launcher_memory_part = FF7_INSTALL_DIR;
 	*(launcher_memory_part + 1) = uint32_t(payload.size());
-	memcpy((void*)(launcher_memory_part + 2), payload.data(), payload.size() * sizeof(wchar_t));
+	memcpy((void *)(launcher_memory_part + 2), payload.data(), payload.size() * sizeof(wchar_t));
 
 	PLOGI.printf("%s -> %ls", __func__, payload.c_str());
 
@@ -321,12 +321,12 @@ void send_game_version()
 
 	if (ff8)
 		*launcher_memory_part = FF8_GAME_VERSION;
-	else if (ff7_estore_edition)
+	else if(ff7_estore_edition)
 		*launcher_memory_part = ESTORE_GAME_VERSION;
 	else
 		*launcher_memory_part = FF7_GAME_VERSION;
 	*(launcher_memory_part + 1) = uint32_t(payload.size());
-	memcpy((void*)(launcher_memory_part + 2), payload.data(), payload.size() * sizeof(wchar_t));
+	memcpy((void *)(launcher_memory_part + 2), payload.data(), payload.size() * sizeof(wchar_t));
 
 	PLOGI.printf("%s -> %ls", __func__, payload.c_str());
 
@@ -369,7 +369,7 @@ void send_launcher_completed()
 {
 	if (ff8)
 		*launcher_memory_part = FF8_END_USER_INFO;
-	else if (ff7_estore_edition)
+	else if(ff7_estore_edition)
 		*launcher_memory_part = ESTORE_END_USER_INFO;
 	else
 		*launcher_memory_part = FF7_END_USER_INFO;
@@ -419,6 +419,48 @@ void write_ffvideo()
 		fwrite_byteswap_ulong(original_mode, handle);
 		fclose(handle);
 	}
+}
+
+void write_ffinput()
+{
+	// The eStore edition uses a different input format that is not supported here
+	if (ff7_estore_edition) return;
+
+	const std::string &mode = ff8 ? ff8_input_mode : ff7_input_mode;
+	if (mode != "missing" && mode != "always") return;
+
+	std::wstring payload;
+
+	payload.append(getDocumentPath());
+	if (payload.size() > 0) payload.append(LR"(\)");
+	payload.append(ff8 ? L"ff8input.cfg" : L"ff7input.cfg");
+
+	if (mode == "missing" && std::filesystem::exists(payload))
+	{
+		PLOGI.printf("%s -> %ls already exists, keeping it", __func__, payload.c_str());
+		return;
+	}
+
+	FILE* handle = _wfopen(payload.c_str(), L"wb");
+	if (!handle)
+	{
+		PLOGW.printf("%s -> could not open %ls for writing", __func__, payload.c_str());
+		return;
+	}
+
+	if (ff8)
+	{
+		std::string data = inputcfg::build_ff8(ff8_input);
+		fwrite(data.data(), 1, data.size(), handle);
+	}
+	else
+	{
+		std::vector<uint8_t> data = inputcfg::build_ff7(ff7_input);
+		fwrite(data.data(), 1, data.size(), handle);
+	}
+	fclose(handle);
+
+	PLOGI.printf("%s -> %ls", __func__, payload.c_str());
 }
 
 void write_ffsound()
