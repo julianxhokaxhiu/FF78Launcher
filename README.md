@@ -8,7 +8,7 @@ An alternative launcher for FF7/FF8 Steam and eStore editions
 
 ### Requirements (Windows only):
 
-- Visual Studio 2022 with the “Desktop development with C++” workload
+- Visual Studio 2022 (minimum) with the “Desktop development with C++” workload
 - CMake 3.25 or newer
 - Git
 
