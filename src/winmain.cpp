@@ -139,6 +139,31 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	// Read config
 	read_cfg();
 
+	// Optional language override from the config ("auto" keeps the detected exe)
+	if (language != "auto")
+	{
+		char candidate[32]{0};
+		sprintf_s(candidate, 32, "%.3s_%s.exe", process_to_start, language.c_str());
+
+		bool known = false;
+		for (int i = 0; i < numProcesses; i++)
+			if (strcmp(candidate, processes[i]) == 0) known = true;
+
+		if (known && std::filesystem::exists(candidate))
+		{
+			strcpy_s(process_to_start, 32, candidate);
+			strncpy(game_lang, language.c_str(), 2);
+			game_lang[2] = '\0';
+
+			// The eStore check depends on the chosen exe
+			ff7_estore_edition = startsWith("ff7_ja", process_to_start) && std::filesystem::file_size("AF3DN.P") < 1_MB;
+
+			PLOGI << "Language override: " << process_to_start;
+		}
+		else
+			PLOGW << "Language '" << language << "' requested but " << candidate << " was not found. Using the auto-detected exe.";
+	}
+
 	// Is it FF8 Chocobo?
 	if (launch_chocobo) sprintf_s(process_to_start, 32, "chocobo_%s.exe", game_lang);
 
@@ -156,6 +181,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		{
 			write_ffvideo();
 			write_ffsound();
+			write_ffinput();
 		}
 
 		if (uses_ffnx)
@@ -180,6 +206,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 			return 1;
 		}
 
+		// Disable the keyboard prompt in the game's AF3DN.P driver (in memory only)
+		HANDLE promptBypassThread = NULL;
+		if (skip_keyboard_prompt && !launch_chocobo)
+			promptBypassThread = start_prompt_bypass(pi.hProcess);
+
 		send_locale_data_dir();
 		send_user_save_dir();
 		send_user_doc_dir();
@@ -191,6 +222,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 		// Wait for the process to finish
 		WaitForSingleObject(pi.hProcess, INFINITE);
+
+		// The bypass thread stops by itself once the game has exited
+		if (promptBypassThread)
+		{
+			WaitForSingleObject(promptBypassThread, 5000);
+			CloseHandle(promptBypassThread);
+		}
 
 		// Close process and thread handles
 		CloseHandle(pi.hProcess);

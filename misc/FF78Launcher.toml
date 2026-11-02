@@ -5,6 +5,13 @@
 ###############################################################################
 
 #########################
+## LANGUAGE
+#########################
+# Game language: "auto" (default, last exe found), or one of de, en, es, fr, it, ja
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~
+language = "en"
+
+#########################
 ## DISPLAY
 #########################
 
@@ -69,3 +76,96 @@ pause_game_on_background = false
 #[LAUNCH CHOCOBO]
 # Launch the Chocobo_*.exe instead of the game
 launch_chocobo = false
+
+###############################################################################
+# CONTROLLER SETTINGS
+###############################################################################
+#
+# write_config:
+#   "off"     = never touch ff7input.cfg / ff8input.cfg (default)
+#   "missing" = create the file only if it does not exist yet
+#   "always"  = rewrite the file from the values below on every launch
+#               (changes made in the game's own Config menu are overwritten)
+#
+# Keyboard values are DirectInput scan codes, written as hex or decimal:
+#   A=0x1E  B=0x30  C=0x2E  D=0x20  E=0x12  F=0x21  G=0x22  H=0x23  I=0x17
+#   J=0x24  K=0x25  L=0x26  M=0x32  N=0x31  O=0x18  P=0x19  Q=0x10  R=0x13
+#   S=0x1F  T=0x14  U=0x16  V=0x2F  W=0x11  X=0x2D  Y=0x15  Z=0x2C
+#   Enter=0x1C  Esc=0x01  Space=0x39  Tab=0x0F  LShift=0x2A  RShift=0x36
+#   Up=0xC8  Down=0xD0  Left=0xCB  Right=0xCD
+#   Home=0xC7  End=0xCF  PageUp=0xC9  PageDown=0xD1  Insert=0xD2  Delete=0xD3
+#   1-9,0 = 0x02-0x0B   F1-F10 = 0x3B-0x44
+#
+# Joystick values are button numbers 1-10, as shown in the official launcher.
+# The D-pad is fixed and cannot be changed here.
+# ---------------------------------------------------------------------------
+
+[ff7_controller]
+write_config = "always"
+
+[ff7_controller.keyboard]
+camera    = 0xC7    # Home
+target    = 0xCF    # End
+page_up   = 0xC9    # PageUp
+page_down = 0xD1    # PageDown
+menu      = 0x2F    # V
+ok        = 0x2D    # X
+cancel    = 0x2E    # C
+switch    = 0xD2    # Insert
+assist    = 0xD3    # Delete
+start     = 0x30    # B
+up        = 0xC8    # Up
+down      = 0xD0    # Down
+left      = 0xCB    # Left
+right     = 0xCD    # Right
+
+[ff7_controller.joystick]
+camera    = 7    # LT / L2
+target    = 8    # RT / R2
+page_up   = 5    # LB / L1
+page_down = 6    # RB / R2
+menu      = 4    # Y / Triangle
+ok        = 3    # B / Circle
+cancel    = 2    # A / Cross
+switch    = 1    # X / Square
+assist    = 9    # Back / Select / Share
+start     = 10   # Start / Options
+
+# ---------------------------------------------------------------------------
+# FF8 follow the labels of the official launcher.
+# "escape_battle" is the first key of the Escape battle combo; the second key
+# is the one set for "switch_pov" (the launcher shows them as D + F, Button 7 + 8).
+# Note: the last two entries (pause / toggle_display) are listed in a different
+# order on the launcher's Keyboard and Joystick tabs, and that order is kept here.
+# ---------------------------------------------------------------------------
+ 
+[ff8_controller]
+write_config = "always"
+ 
+[ff8_controller.keyboard]
+menu           = 47    # V
+select         = 45    # X
+card_game      = 31    # S
+cancel         = 46    # C
+rotation_left  = 35    # H
+rotation_right = 34    # G
+escape_battle  = 32    # D
+switch_pov     = 33    # F
+pause          = 30    # A
+toggle_display = 36    # J
+up             = 200
+down           = 208
+left           = 203
+right          = 205
+ 
+[ff8_controller.joystick]
+menu           = 3    # B / Circle
+select         = 2    # A / Cross
+card_game      = 1    # X / Square
+cancel         = 4    # Y / Triangle
+rotation_left  = 5    # LB / L1
+rotation_right = 6    # RB / R1
+escape_battle  = 7    # LT / L2
+switch_pov     = 8    # RT / R2
+toggle_display = 9    # Back / Select / Share
+pause          = 10   # Start / Options

@@ -14,10 +14,150 @@
 /****************************************************************************/
 
 #include <filesystem>
+#include <vector>
+#include <cstring>
 #include <shlwapi.h>
 #include <shlobj.h>
+#include <tlhelp32.h>
 #include "globals.h"
 #include "utils.h"
+
+// ---------------------------------------------------------------------------
+// In-memory bypass of the FF7/FF8 keyboard prompt (replaces editing AF3DN.P)
+//
+// AF3DN.P contains a one-time flag byte (initialised to 1) that is checked in
+// its render code. FF7 example:
+//
+//   38 1D <flag>        cmp  byte [flag], bl
+//   74 48               je   skip
+//   39 3D <mode>        cmp  dword [mode], edi
+//   75 40               jne  skip
+//   6A 48               push 0x48
+//   88 1D <flag>        mov  byte [flag], bl
+//
+// FF8 uses the same flag with slightly different surrounding code (see the
+// signature table below). Setting the flag to 0 makes the driver skip that block, which is exactly
+// what the one-byte file patch does. Here we find the code by signature (so it
+// also works if the DLL is relocated), and write 0 to the flag in the running
+// game's memory.
+// ---------------------------------------------------------------------------
+static bool patch_prompt_flag(HANDLE hProcess, DWORD pid)
+{
+	// Find the AF3DN.P module in the game process
+	HANDLE snap = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE | TH32CS_SNAPMODULE32, pid);
+	if (snap == INVALID_HANDLE_VALUE) return false;
+
+	MODULEENTRY32 me;
+	ZeroMemory(&me, sizeof(me));
+	me.dwSize = sizeof(me);
+
+	BYTE *base = nullptr;
+	DWORD size = 0;
+	if (Module32First(snap, &me))
+	{
+		do
+		{
+			if (_stricmp(me.szModule, "AF3DN.P") == 0)
+			{
+				base = me.modBaseAddr;
+				size = me.modBaseSize;
+				break;
+			}
+		} while (Module32Next(snap, &me));
+	}
+	CloseHandle(snap);
+
+	if (!base || size == 0) return false;
+
+	// Copy the module image out of the game
+	std::vector<BYTE> img(size);
+	SIZE_T got = 0;
+	if (!ReadProcessMemory(hProcess, base, img.data(), size, &got) || got < size) return false;
+
+	// Code signatures (mask 0 = wildcard). "ref2" is the offset of the second
+	// reference to the flag, which must equal the one at offset 2.
+	struct Signature
+	{
+		const char *name;
+		size_t len;
+		size_t ref2;
+		BYTE pat[32];
+		BYTE mask[32];
+	};
+
+	static const Signature signatures[] = {
+		// FF7: cmp [flag],bl / je / cmp [mode],edi / jne / push 48h / mov [flag],bl
+		{ "FF7", 24, 20,
+			{ 0x38,0x1D,0,0,0,0, 0x74,0x48, 0x39,0x3D,0,0,0,0, 0x75,0x40, 0x6A,0x48, 0x88,0x1D,0,0,0,0 },
+			{ 1,1,0,0,0,0, 1,1, 1,1,0,0,0,0, 1,1, 1,1, 1,1,0,0,0,0 } },
+		// FF8: cmp [flag],bl / jz / cmp [other],bl / jz / mov [flag],bl
+		{ "FF8", 30, 26,
+			{ 0x38,0x1D,0,0,0,0, 0x0F,0x84,0,0,0,0, 0x38,0x1D,0,0,0,0, 0x0F,0x84,0,0,0,0, 0x88,0x1D,0,0,0,0 },
+			{ 1,1,0,0,0,0, 1,1,0,0,0,0, 1,1,0,0,0,0, 1,1,0,0,0,0, 1,1,0,0,0,0 } },
+	};
+
+	for (const Signature &sig : signatures)
+	for (size_t i = 0; i + sig.len <= img.size(); i++)
+	{
+		bool ok = true;
+		for (size_t j = 0; j < sig.len; j++)
+		{
+			if (sig.mask[j] && img[i + j] != sig.pat[j]) { ok = false; break; }
+		}
+		if (!ok) continue;
+
+		// Both references must point to the same flag
+		if (memcmp(&img[i + 2], &img[i + sig.ref2], 4) != 0) continue;
+
+		uint32_t flagAddr;
+		memcpy(&flagAddr, &img[i + 2], 4);
+
+		// Not (yet) relocated, or not what we expect: try again later
+		if (flagAddr < (uint32_t)(uintptr_t)base || flagAddr >= (uint32_t)(uintptr_t)base + size) return false;
+
+		BYTE value = 0xFF;
+		if (!ReadProcessMemory(hProcess, (LPCVOID)(uintptr_t)flagAddr, &value, 1, &got) || got != 1) return false;
+
+		if (value == 0)
+		{
+			PLOGI.printf("Keyboard prompt flag already cleared");
+			return true;
+		}
+		if (value != 1) return false;
+
+		BYTE zero = 0;
+		if (!WriteProcessMemory(hProcess, (LPVOID)(uintptr_t)flagAddr, &zero, 1, &got) || got != 1) return false;
+
+		PLOGI.printf("Keyboard prompt bypassed (%s driver, flag at 0x%08X)", sig.name, flagAddr);
+		return true;
+	}
+
+	return false;
+}
+
+static HANDLE g_bypassProcess = NULL;
+
+static DWORD WINAPI prompt_bypass_thread(LPVOID lpParam)
+{
+	DWORD pid = GetProcessId(g_bypassProcess);
+	ULONGLONG deadline = GetTickCount64() + 60000;
+
+	// Keep trying until the driver is loaded, the game exits or we time out
+	while (WaitForSingleObject(g_bypassProcess, 0) == WAIT_TIMEOUT && GetTickCount64() < deadline)
+	{
+		if (patch_prompt_flag(g_bypassProcess, pid)) return 0;
+		Sleep(5);
+	}
+
+	PLOGW.printf("Could not bypass the keyboard prompt (AF3DN.P not found, or unsupported version)");
+	return 1;
+}
+
+HANDLE start_prompt_bypass(HANDLE hProcess)
+{
+	g_bypassProcess = hProcess;
+	return CreateThread(NULL, 0, prompt_bypass_thread, NULL, 0, NULL);
+}
 
 std::wstring getDocumentPath()
 {
@@ -279,6 +419,48 @@ void write_ffvideo()
 		fwrite_byteswap_ulong(original_mode, handle);
 		fclose(handle);
 	}
+}
+
+void write_ffinput()
+{
+	// The eStore edition uses a different input format that is not supported here
+	if (ff7_estore_edition) return;
+
+	const std::string &mode = ff8 ? ff8_input_mode : ff7_input_mode;
+	if (mode != "missing" && mode != "always") return;
+
+	std::wstring payload;
+
+	payload.append(getDocumentPath());
+	if (payload.size() > 0) payload.append(LR"(\)");
+	payload.append(ff8 ? L"ff8input.cfg" : L"ff7input.cfg");
+
+	if (mode == "missing" && std::filesystem::exists(payload))
+	{
+		PLOGI.printf("%s -> %ls already exists, keeping it", __func__, payload.c_str());
+		return;
+	}
+
+	FILE* handle = _wfopen(payload.c_str(), L"wb");
+	if (!handle)
+	{
+		PLOGW.printf("%s -> could not open %ls for writing", __func__, payload.c_str());
+		return;
+	}
+
+	if (ff8)
+	{
+		std::string data = inputcfg::build_ff8(ff8_input);
+		fwrite(data.data(), 1, data.size(), handle);
+	}
+	else
+	{
+		std::vector<uint8_t> data = inputcfg::build_ff7(ff7_input);
+		fwrite(data.data(), 1, data.size(), handle);
+	}
+	fclose(handle);
+
+	PLOGI.printf("%s -> %ls", __func__, payload.c_str());
 }
 
 void write_ffsound()

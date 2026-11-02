@@ -15,6 +15,11 @@
 
 #pragma once
 
+#include <string>
+
+#include "input_cfg.h"
+
+extern std::string language;
 extern bool fullscreen;
 extern long window_width;
 extern long window_height;
@@ -26,5 +31,12 @@ extern bool pause_game_on_background;
 extern long sfx_volume;
 extern long music_volume;
 extern bool launch_chocobo;
+extern bool skip_keyboard_prompt;
+
+// Controller settings: "off" (default), "missing" (only create the file if it does not exist) or "always"
+extern std::string ff7_input_mode;
+extern std::string ff8_input_mode;
+extern inputcfg::Ff7 ff7_input;
+extern inputcfg::Ff8 ff8_input;
 
 void read_cfg();
